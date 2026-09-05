@@ -1,0 +1,6 @@
+{
+  "name": "Geely EX5 Dentist Loan Tracker",
+  "description": "ระบบจัดการและวางแผนผ่อนลดต้นลดดอก Geely EX5 สำหรับคุณหมอฟัน พร้อมระบบอ่านสลิปอัตโนมัติและแดชบอร์ดคำนวณดอกเบี้ย",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
