@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidLoanConfig(data) {
+      return data.dentistName is string && data.dentistName.size() <= 100
+        && data.carModel is string && data.carModel.size() <= 100
+        && data.totalLoanAmount is number && data.totalLoanAmount > 0
+        && data.annualInterestRate is number && data.annualInterestRate >= 0
+        && data.monthlyInstallment is number && data.monthlyInstallment > 0
+        && data.startDate is string && data.startDate.size() <= 50;
+    }
+
+    function isValidPayment(data) {
+      return data.id is string && data.id.size() <= 64
+        && data.period is number && data.period >= 1
+        && data.date is string && data.date.size() <= 50
+        && data.amount is number && data.amount > 0
+        && data.principalPaid is number
+        && data.interestPaid is number
+        && data.remainingBalance is number;
+    }
+
+    match /loan_config/{configId} {
+      allow get: if isValidId(configId);
+      allow list: if true;
+      allow create, update: if isValidId(configId) && isValidLoanConfig(incoming());
+      allow delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow get: if isValidId(paymentId);
+      allow list: if true;
+      allow create: if isValidId(paymentId) && isValidPayment(incoming());
+      allow update: if isValidId(paymentId) && isValidPayment(incoming());
+      allow delete: if isValidId(paymentId);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

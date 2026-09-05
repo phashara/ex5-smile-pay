@@ -49,7 +49,10 @@ export const Header: FC<HeaderProps> = ({
               <div className="text-[11px] text-neutral-400 font-medium flex items-center gap-1.5">
                 <span className="text-white/90 font-medium">Dr. Oleo Oilly</span>
                 <span className="text-neutral-600">•</span>
-                <span className="text-neutral-400">วงเงิน ฿800,000</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>🔥 Firebase Cloud</span>
+                </span>
               </div>
             </div>
           </div>

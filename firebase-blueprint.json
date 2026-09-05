@@ -1,0 +1,126 @@
+{
+  "entities": {
+    "LoanConfig": {
+      "title": "LoanConfig",
+      "description": "Geely EX5 loan configuration and parameters",
+      "type": "object",
+      "properties": {
+        "dentistName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Name of the dentist borrower"
+        },
+        "carModel": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Car model being financed"
+        },
+        "totalLoanAmount": {
+          "type": "number",
+          "description": "Total principal loan amount in THB"
+        },
+        "annualInterestRate": {
+          "type": "number",
+          "description": "Annual effective interest rate in percent"
+        },
+        "monthlyInstallment": {
+          "type": "number",
+          "description": "Standard monthly installment amount in THB"
+        },
+        "startDate": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Loan start date YYYY-MM-DD"
+        }
+      },
+      "required": [
+        "dentistName",
+        "carModel",
+        "totalLoanAmount",
+        "annualInterestRate",
+        "monthlyInstallment",
+        "startDate"
+      ]
+    },
+    "PaymentRecord": {
+      "title": "PaymentRecord",
+      "description": "Payment installment record for Geely EX5 loan",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Unique identifier for the payment"
+        },
+        "period": {
+          "type": "number",
+          "description": "Installment period number"
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Date of payment transfer"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Total payment amount in THB"
+        },
+        "principalPaid": {
+          "type": "number",
+          "description": "Principal deducted in THB"
+        },
+        "interestPaid": {
+          "type": "number",
+          "description": "Interest deducted in THB"
+        },
+        "remainingBalance": {
+          "type": "number",
+          "description": "Outstanding principal balance after payment"
+        },
+        "isExtraPayment": {
+          "type": "boolean",
+          "description": "Whether this installment included extra prepayment"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Optional notes or remarks"
+        },
+        "bankName": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Bank name from transfer slip"
+        },
+        "transactionId": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Transaction reference number"
+        },
+        "slipUrl": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional URL or preview of slip"
+        }
+      },
+      "required": [
+        "id",
+        "period",
+        "date",
+        "amount",
+        "principalPaid",
+        "interestPaid",
+        "remainingBalance"
+      ]
+    }
+  },
+  "firestore": {
+    "/loan_config/{configId}": {
+      "schema": "LoanConfig",
+      "description": "Configuration parameters for the loan"
+    },
+    "/payments/{paymentId}": {
+      "schema": "PaymentRecord",
+      "description": "Payment records and installments"
+    }
+  }
+}

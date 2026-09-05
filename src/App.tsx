@@ -12,12 +12,23 @@ import { LoanSettingsModal } from "./components/LoanSettingsModal";
 import { LoanConfig, PaymentRecord } from "./types";
 import { defaultLoanConfig, initialPayments } from "./utils/initialData";
 import { calculateAmortizationSummary, recalculatePayments, formatCurrency } from "./utils/calculator";
-import { Upload, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import { Upload, ArrowRight, Sparkles, CheckCircle2, CloudCheck, RefreshCw } from "lucide-react";
+import {
+  testConnection,
+  subscribeLoanConfig,
+  saveLoanConfigToFirestore,
+  subscribePayments,
+  savePaymentToFirestore,
+  batchSavePaymentsToFirestore,
+  deletePaymentFromFirestore,
+  resetPaymentsInFirestore,
+} from "./firebase";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
+  const [isCloudSynced, setIsCloudSynced] = useState(false);
 
-  // State with localStorage
+  // State with localStorage and Firestore backing
   const [loanConfig, setLoanConfig] = useState<LoanConfig>(() => {
     try {
       const saved = localStorage.getItem("geely_ex5_config_v3");
@@ -48,7 +59,33 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null);
 
-  // Sync to localStorage
+  // 1. Initial Firestore Connection Check and Real-time Subscriptions
+  useEffect(() => {
+    // Mandated test connection on boot
+    testConnection().catch((err) => console.warn("Firestore test connection:", err));
+
+    // Subscribe to Loan Config
+    const unsubConfig = subscribeLoanConfig((cloudConfig) => {
+      setLoanConfig(cloudConfig);
+      localStorage.setItem("geely_ex5_config_v3", JSON.stringify(cloudConfig));
+    });
+
+    // Subscribe to Payments Collection
+    const unsubPayments = subscribePayments((cloudPayments) => {
+      if (cloudPayments && cloudPayments.length > 0) {
+        setPayments(cloudPayments);
+        localStorage.setItem("geely_ex5_payments_v3", JSON.stringify(cloudPayments));
+        setIsCloudSynced(true);
+      }
+    });
+
+    return () => {
+      unsubConfig();
+      unsubPayments();
+    };
+  }, []);
+
+  // Sync to local fallback
   useEffect(() => {
     try {
       localStorage.setItem("geely_ex5_config_v3", JSON.stringify(loanConfig));
@@ -73,8 +110,8 @@ export default function App() {
   const currentBalance = summary.currentBalance;
   const nextPeriod = payments.length + 1;
 
-  // Handlers
-  const handleAddPayment = (newPayment: {
+  // Handlers with Firestore Persistence
+  const handleAddPayment = async (newPayment: {
     date: string;
     amount: number;
     notes?: string;
@@ -106,9 +143,14 @@ export default function App() {
 
     const updated = recalculatePayments(loanConfig, rawList);
     setPayments(updated);
+    try {
+      await batchSavePaymentsToFirestore(updated);
+    } catch (err) {
+      console.error("Failed to save payment to Firestore:", err);
+    }
   };
 
-  const handleUpdatePayment = (updated: {
+  const handleUpdatePayment = async (updated: {
     id: string;
     amount: number;
     date: string;
@@ -132,9 +174,14 @@ export default function App() {
 
     const recalculated = recalculatePayments(loanConfig, rawList);
     setPayments(recalculated);
+    try {
+      await batchSavePaymentsToFirestore(recalculated);
+    } catch (err) {
+      console.error("Failed to update payment in Firestore:", err);
+    }
   };
 
-  const handleDeletePayment = (id: string) => {
+  const handleDeletePayment = async (id: string) => {
     const filtered = payments.filter((p) => p.id !== id);
     const rawList = filtered.map((p) => ({
       id: p.id,
@@ -149,16 +196,28 @@ export default function App() {
     }));
     const updated = recalculatePayments(loanConfig, rawList);
     setPayments(updated);
+    try {
+      await deletePaymentFromFirestore(id);
+      await batchSavePaymentsToFirestore(updated);
+    } catch (err) {
+      console.error("Failed to delete payment from Firestore:", err);
+    }
   };
 
-  const handleResetToPromptData = () => {
+  const handleResetToPromptData = async () => {
     setLoanConfig(defaultLoanConfig);
     setPayments(initialPayments);
     localStorage.setItem("geely_ex5_payments_v3", JSON.stringify(initialPayments));
     localStorage.setItem("geely_ex5_config_v3", JSON.stringify(defaultLoanConfig));
+    try {
+      await saveLoanConfigToFirestore(defaultLoanConfig);
+      await resetPaymentsInFirestore(defaultLoanConfig, initialPayments);
+    } catch (err) {
+      console.error("Failed to reset Firestore data:", err);
+    }
   };
 
-  const handleSaveConfig = (updatedConfig: LoanConfig) => {
+  const handleSaveConfig = async (updatedConfig: LoanConfig) => {
     setLoanConfig(updatedConfig);
     const rawList = payments.map((p) => ({
       id: p.id,
@@ -171,6 +230,12 @@ export default function App() {
     }));
     const recalculated = recalculatePayments(updatedConfig, rawList);
     setPayments(recalculated);
+    try {
+      await saveLoanConfigToFirestore(updatedConfig);
+      await batchSavePaymentsToFirestore(recalculated);
+    } catch (err) {
+      console.error("Failed to save config to Firestore:", err);
+    }
   };
 
   return (
